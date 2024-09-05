@@ -1,0 +1,169 @@
+plugins {
+    id "groovy"
+    id "war"
+    id "idea"
+    id "org.grails.grails-plugin"
+    id "eclipse"
+    id "com.gradleup.nmcp" version "0.0.8"
+    id "maven-publish"
+    id 'signing'
+//    id 'tech.yanand.maven-central-publish' version '1.2.0' //use JAVA 17
+}
+
+group = "io.github.vsachinv"
+
+repositories {
+    mavenCentral()
+    maven { url "https://repo.grails.org/grails/core/" }
+}
+
+configurations {
+    all {
+    }
+}
+
+dependencies {
+    implementation("org.grails:grails-core")
+    implementation("org.grails:grails-logging")
+    implementation("org.grails:grails-plugin-databinding")
+    implementation("org.grails:grails-plugin-i18n")
+    implementation("org.grails:grails-plugin-interceptors")
+    implementation("org.grails:grails-plugin-rest")
+    implementation("org.grails:grails-plugin-services")
+    implementation("org.grails:grails-plugin-url-mappings")
+    implementation("org.grails:grails-web-boot")
+    implementation("org.grails.plugins:hibernate5")
+    implementation("org.springframework.boot:spring-boot-autoconfigure")
+    implementation("org.springframework.boot:spring-boot-starter-logging")
+    implementation("org.springframework.boot:spring-boot-starter-validation")
+    compileOnly("io.micronaut:micronaut-inject-groovy")
+    console("org.grails:grails-console")
+    runtimeOnly("com.h2database:h2")
+    runtimeOnly("org.apache.tomcat:tomcat-jdbc")
+    testImplementation("io.micronaut:micronaut-inject-groovy")
+    testImplementation("org.grails:grails-gorm-testing-support")
+    testImplementation("org.spockframework:spock-core")
+    testImplementation("io.micronaut:micronaut-http-client")
+
+}
+
+bootJar.enabled = false
+
+java {
+    sourceCompatibility = JavaVersion.toVersion("11")
+}
+
+
+jar {
+    manifest {
+        attributes("Built-By": System.getProperty("user.name"))
+        attributes(["Plugin-Version"        : version,
+                    "Plugin-Title"          : project.name,
+                    "Plugin-Build-Timestamp": new Date().format("yyyy-MM-dd'T'HH:mm:ssZ")])
+    }
+    from sourceSets.main.output
+}
+
+
+task sourceJar(type: Jar) {
+    classifier = 'sources'
+    from sourceSets.main.allSource
+}
+
+task packageJavadoc(type: Jar) {
+    from javadoc
+    classifier = 'javadoc'
+}
+
+task packageGroovydoc(type: Jar) {
+    from groovydoc
+    classifier = 'groovydoc'
+}
+
+
+publishing {
+    publications {
+        mavenJar(MavenPublication) {
+            groupId = project.group
+            version = project.version
+            from components.java
+            versionMapping {
+                usage('java-api') {
+                    fromResolutionOf('runtimeClasspath')
+                }
+                usage('java-runtime') {
+                    fromResolutionResult()
+                }
+            }
+            artifact sourceJar
+            artifact packageJavadoc
+            artifact packageGroovydoc
+            pom {
+                name = 'Maven Publish test plugin'
+                description = 'Test publish'
+                url = 'https://github.com/vsachinv/MavenPublishTest'
+                licenses {
+                    license {
+                        name = 'The Apache License, Version 2.0'
+                        url = 'https://www.apache.org/licenses/LICENSE-2.0.txt'
+                    }
+                }
+                developers {
+                    developer {
+                        id = 'vsachinv'
+                        name = 'Sachin Verma'
+                    }
+                }
+                scm {
+                    connection = 'scm:git:git://github.com/vsachinv/MavenPublishTest.git'
+                    developerConnection = 'scm:git:ssh://github.com/vsachinv/MavenPublishTest.git'
+                    url = 'https://github.com/vsachinv/MavenPublishTest/'
+                }
+            }
+        }
+
+
+
+    }
+//    repositories {
+//        maven {
+//            name = "Local"
+//            url = layout.buildDirectory.dir('repos/bundles')
+//        }
+//    }
+}
+
+// in ~/.gradle/gradle.properties set signing.keyId, signing.password and signing.secretKeyRingFile.
+afterEvaluate {
+    signing {
+        sign publishing.publications
+    }
+}
+
+//Task to publish publishMavenJarPublicationToCentralPortal
+nmcp {
+    // nameOfYourPublication must point to an existing publication
+    publishAllProjectsProbablyBreakingProjectIsolation {
+        username = project.findProperty("mavenUsername") ?: System.getenv("MAVEN_USERNAME")
+        password = project.findProperty("mavenPassword") ?: System.getenv("MAVEN_PASSWORD")
+        // publish manually from the portal
+        publicationType = "USER_MANAGED"
+        // or if you want to publish automatically
+//        publicationType = "AUTOMATIC"
+    }
+}
+
+//https://github.com/yananhub/flying-gradle-plugin/ works with java 17
+//mavenCentral {
+//    repoDir = layout.buildDirectory.dir('repos/bundles')
+//    // Token for Publisher API calls obtained from Sonatype official,
+//    // it should be Base64 encoded of "username:password".
+//    authToken = 'REtMYVpKdFM6QngrcnVTTENaWTlla2cyMUFaaHd3b0lFdUdMNitURVFVWWZNc3dQcDZ1QlM='
+//    // Whether the upload should be automatically published or not. Use 'USER_MANAGED' if you wish to do this manually.
+//    // This property is optional and defaults to 'AUTOMATIC'.
+//    publishingType = 'USER_MANAGED'
+//    // Max wait time for status API to get 'PUBLISHING' or 'PUBLISHED' status when the publishing type is 'AUTOMATIC',
+//    // or additionally 'VALIDATED' when the publishing type is 'USER_MANAGED'.
+//    // This property is optional and defaults to 60 seconds.
+//    maxWait = 60
+//}
